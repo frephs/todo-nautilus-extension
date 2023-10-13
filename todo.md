@@ -1,1 +1,2 @@
 - [] implement auto update after toggling a task (now requires refreshing with `F5`)
+- [] implement real checkboxes instead of icons and emblems
