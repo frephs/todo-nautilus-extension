@@ -70,14 +70,6 @@ class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
    
 
     def toggle(self, menu, files):
-
-        # Get the paths for all the files.
-        # Also, strip any protocol headers, if required.
-        # TODO confirm with author:
-        #  windows function doesn't sanitize file names here.
-        #  is this correct? if so this behavior needs to change
-        #  also, this would probably a lot cleaner with pathlib
-
         for file in files:
             file_path = unquote(urlparse(file.get_uri()).path)
             directory = os.path.dirname(file_path)
@@ -100,10 +92,6 @@ class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
 
 
     def get_file_items(self, files):
-        # files = args[0] if gi_version_major == 4 else args[1]
-
-        # If there are many items to copy, change the label
-        # to reflect that.
         if len(files) > 1:
             item_label = 'Toggle items'
         else:
