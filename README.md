@@ -30,6 +30,8 @@ The extension utilizes the Nautilus extension API and integrates with the Nautil
 ### Installation
 - Place the file in the appropriate Nautilus extensions directory (usually `~/.local/share/nautilus-python/extensions/`).
 
+- Give the extension executable permissions by running `chmod +x todo_nautilus_extension.py` in the terminal.
+
 - Restart Nautilus by running `nautilus -q && nautilus` in the terminal.
 
 
