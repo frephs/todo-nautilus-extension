@@ -1,0 +1,1 @@
+- [] implement auto update after toggling a task (now requires refreshing with `F5`)
