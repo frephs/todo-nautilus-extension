@@ -34,7 +34,7 @@ This extension assumes the existence of a "todo.md" file in the same directory a
 
 For any issues or improvements, feel free to open an issue or submit a pull request.
 
-Enjoy managing your file-rrelated-tasks efficiently with Nautilus!
+Enjoy managing your file-related-tasks efficiently with Nautilus!
 
 ## Screenshots
 ![Nautilus Extension](src/Screenshot.png)
