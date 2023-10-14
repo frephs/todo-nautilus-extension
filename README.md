@@ -2,11 +2,12 @@
 
 This Python script provides an extension for the Nautilus file manager, allowing users to mark files as "done" by managing a to-do list file named "todo.md" in the same directory as the file. It utilizes checkboxes to indicate the status of the task associated with each file.
 
-## Usage
+## Usage 
 
 1. Clone or download this repository.
 2. Copy the `task_done_extension.py` file to the appropriate Nautilus extensions directory (usually `~/.local/share/nautilus-python/extensions/`).
-3. Restart Nautilus by running `nautilus -q` in the terminal.
+3. Give the extension executable permissions by running `chmod +x task_done_extension.py` in the terminal.
+4. Restart Nautilus by running `nautilus -q` in the terminal.
 
 ## Features
 
@@ -26,14 +27,6 @@ The extension utilizes the Nautilus extension API and integrates with the Nautil
 ### Files
 
 - `todo_nautilus_extension.py`: Contains the main extension logic and integrates with Nautilus to provide the functionality.
-  
-### Installation
-- Place the file in the appropriate Nautilus extensions directory (usually `~/.local/share/nautilus-python/extensions/`).
-
-- Give the extension executable permissions by running `chmod +x todo_nautilus_extension.py` in the terminal.
-
-- Restart Nautilus by running `nautilus -q && nautilus` in the terminal.
-
 
 ## Note
 
