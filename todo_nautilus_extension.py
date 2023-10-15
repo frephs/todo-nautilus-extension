@@ -79,7 +79,6 @@ class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
             if os.path.exists(todo_file_path):
                 with open(todo_file_path, 'r') as todo_file:
                     todo_file_content = todo_file.read()
-                # Check if file_name is in todo_file_content
                 if file_name in todo_file_content:
                     # File name found in todo.md, remove it
                     todo_file_content = todo_file_content.replace(file_name + '\n', '')
