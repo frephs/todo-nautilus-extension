@@ -89,6 +89,10 @@ class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
                     # File name not found in todo.md, insert it
                     with open(todo_file_path, 'a') as todo_file:
                         todo_file.write(file_name + '\n')
+            else:
+                # if todo.md doesn't exist create it and write the first task
+                with open(todo_file_path, 'a') as todo_file:
+                        todo_file.write(file_name + '\n')
 
 
     def get_file_items(self, files):
