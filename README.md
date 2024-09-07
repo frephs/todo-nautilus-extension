@@ -44,7 +44,4 @@ For any issues or improvements, feel free to open an issue or submit a pull requ
 Enjoy managing your file-related tasks efficiently with Nautilus!
 
 ##  Demo
-<video controls>
-  <source src="src/demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+![Demo](src/demo.gif)
