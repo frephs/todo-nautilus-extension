@@ -1,112 +1,182 @@
 import os
 from urllib.parse import unquote, urlparse
-from gi.repository import Nautilus, GObject#, Gdk, Gtk
-import gi
+from gi.repository import Nautilus, GObject
 
-CHECKED_CHAR = u'\u2713'  # Checkmark symbol
-UNCHECKED_CHAR = u'\u2610'  # Empty checkbox symbol
+# Define a mapping of states to their corresponding emojis
+STATUS_EMOJI_MAP = {
+    "todo": "🔴",          # Red circle for todo
+    "in_progress": "🟡",   # Yellow circle for in progress
+    "done": "🟢"           # Green circle for done
+}
 
-class TaskStatusInfoProvider(GObject.GObject, Nautilus.ColumnProvider, Nautilus.InfoProvider):
+class TaskStatusProvider(GObject.GObject, Nautilus.ColumnProvider, Nautilus.InfoProvider):
     def get_columns(self):
         column = Nautilus.Column(
-            name="file_task_done_checked",
-            attribute="file_task_done_checked",
-            label="Done",
-            description="The task associated with the file has been done"
+            name="file_task_status",
+            attribute="file_task_status",
+            label="Status",
+            description="The status of the task associated with the file"
         )
-
         return column,
 
     def update_file_info(self, file):
         file_path = unquote(urlparse(file.get_uri()).path)
-
-        # Check if todo.md exists in the same directory
         directory = os.path.dirname(file_path)
-        todo_file_path = os.path.join(directory, "todo.md")
+        todo_file_path = os.path.join(directory, ".todo")
 
-        # # Create a checkbox
-        # checkbox = Gtk.CheckButton()
-        # checkbox.connect("toggled", on_checkbox_toggled)
-
-        # Check if todo.md exists and has the same name as the current file
         if os.path.exists(todo_file_path):
             with open(todo_file_path, 'r') as todo_file:
-                todo_file_content = todo_file.read()
+                todo_file_content = todo_file.readlines()
                 file_name = os.path.basename(file_path)
-                
-                if file_name in todo_file_content:
-                    # File name found in todo.md, set unchecked checkbox
-                    file.add_emblem('unreadable')  # Replace with appropriate emblem
-                    file.add_string_attribute('file_task_done_checked', UNCHECKED_CHAR)
-                    
-                else:
-                    # File name not found in todo.md, set checked checkbox
-                    file.add_emblem('default')  # Replace with appropriate emblem
-                    file.add_string_attribute('file_task_done_checked', CHECKED_CHAR)
-        else:
-            # Todo.md doesn't exist, set checked checkbox
-            file.add_emblem('checked')  # Replace with appropriate emblem
-            file.add_string_attribute('file_task_done_checked', CHECKED_CHAR)
 
-        # # Get the cell renderer for the "Done" column
-        # cell_renderer = Nautilus.CellRendererPixbuf()
-        # cell_renderer.set_padding(6, 6)
+                for line in todo_file_content:
+                    line = line.strip()
+                    if line.endswith(file_name):  # Check if the line ends with the filename
+                        status = line.split(' ')[0]  # Get the status (todo, in_progress, done)
+                        emoji = STATUS_EMOJI_MAP.get(status, '')  # Get the corresponding emoji
+                        file.add_string_attribute('file_task_status', emoji)
+                        return
 
-        # # Set the checkbox widget as the pixbuf for the cell renderer
-        # if checkbox.get_active():
-        #     pixbuf = Gtk.IconTheme.get_default().load_icon("checkbox-checked", 16, 0)
-        # else:
-        #     pixbuf = Gtk.IconTheme.get_default().load_icon("checkbox-unchecked", 16, 0)
-
-        # cell_renderer.set_property("pixbuf", pixbuf)
-
-        # # Add the cell renderer to the file info
-        # file.add_info("standard::done_checkbox", cell_renderer)
-
-
+        # If the file is not found in the todo file, set it to empty
+        file.add_string_attribute('file_task_status', '')
 
 
 class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
-   
-
     def toggle(self, menu, files):
         for file in files:
             file_path = unquote(urlparse(file.get_uri()).path)
             directory = os.path.dirname(file_path)
-            todo_file_path = os.path.join(directory, "todo.md")
+            todo_file_path = os.path.join(directory, ".todo")
             file_name = os.path.basename(file_path)
 
-            if os.path.exists(todo_file_path):
-                with open(todo_file_path, 'r') as todo_file:
-                    todo_file_content = todo_file.read()
-                if file_name in todo_file_content:
-                    # File name found in todo.md, remove it
-                    todo_file_content = todo_file_content.replace(file_name + '\n', '')
-                    with open(todo_file_path, 'w') as todo_file:
-                        todo_file.write(todo_file_content)
-                else:
-                    # File name not found in todo.md, insert it
-                    with open(todo_file_path, 'a') as todo_file:
-                        todo_file.write(file_name + '\n')
-            else:
-                # if todo.md doesn't exist create it and write the first task
-                with open(todo_file_path, 'a') as todo_file:
-                        todo_file.write(file_name + '\n')
+            # Ensure the .todo file exists
+            if not os.path.exists(todo_file_path):
+                with open(todo_file_path, 'w') as todo_file:
+                    todo_file.write('')
 
+            # Read the current status from the .todo file
+            with open(todo_file_path, 'r') as todo_file:
+                todo_file_content = todo_file.readlines()
+
+            # Check the current status of the file
+            current_status = None
+            for line in todo_file_content:
+                if line.strip().endswith(file_name):  # Check if the line ends with the filename
+                    current_status = line.strip().split(' ')[0]  # Get the current status
+                    todo_file_content.remove(line)  # Remove the existing line
+                    break
+
+            # Determine the new status
+            if current_status in STATUS_EMOJI_MAP:
+                current_index = list(STATUS_EMOJI_MAP.keys()).index(current_status)
+                new_index = (current_index + 1) % len(STATUS_EMOJI_MAP)
+                new_status = list(STATUS_EMOJI_MAP.keys())[new_index]
+            else:
+                new_status = "todo"  # Default to todo if not found
+
+            # Update the todo file
+            # Append the new status at the end of the line
+            todo_file_content.append(f"{new_status} {file_name}\n")
+
+            # Write the updated content back to the .todo file
+            with open(todo_file_path, 'w') as todo_file:
+                todo_file.writelines(todo_file_content)
 
     def get_file_items(self, files):
         if len(files) > 1:
-            item_label = 'Toggle items'
+            item_label = 'Toggle status for items'
         else:
-            item_label = 'Toggle item'
+            item_label = 'Toggle status for item'
 
-        mark_as_done = Nautilus.MenuItem(
-            name='MarkAsDone',
+        toggle_status = Nautilus.MenuItem(
+            name='ToggleStatus',
             label=item_label,
-            tip='Toggle items as done or undone'
+            tip='Toggle status for items'
         )
-        mark_as_done.connect('activate', self.toggle, files)
-        #Nautilus.MenuProvider.emit_items_updated_signal();
-        return mark_as_done,
+         
+        # if the file is not in the todo file, return
+        
+        current_status = None
+        
+        for file in files:
+            file_path = unquote(urlparse(file.get_uri()).path)
+            directory = os.path.dirname(file_path)
+            todo_file_path = os.path.join(directory, ".todo")
+            file_name = os.path.basename(file_path)
+        
+            
+            with open(todo_file_path, 'r') as todo_file:
+                todo_file_content = todo_file.readlines()
+            
+            for line in todo_file_content:
+                if line.strip().endswith(file_name):
+                    current_status = line.strip().split(' ')[0]
+                    todo_file_content.remove(line)
+                    break
+        
+        if current_status is None:
+            return        
+        
+        toggle_status.connect('activate', self.toggle, files)
+        return toggle_status,
 
-   
+
+class ToggleTrackingExtension(GObject.GObject, Nautilus.MenuProvider):
+    def toggle(self, menu, files):
+        for file in files:
+            file_path = unquote(urlparse(file.get_uri()).path)
+            directory = os.path.dirname(file_path)
+            todo_file_path = os.path.join(directory, ".todo")
+            file_name = os.path.basename(file_path)
+
+            with open(todo_file_path, 'r') as todo_file:
+                todo_file_content = todo_file.readlines()
+            
+            if os.path.exists(todo_file_path) and file_name in [line.strip().split(' ')[1] for line in todo_file_content]:
+                # Remove the line that contains the file name
+                todo_file_content = [line for line in todo_file_content if not line.strip().endswith(file_name)]
+
+                # Write the updated content back to the .todo file
+                with open(todo_file_path, 'w') as todo_file:
+                    todo_file.writelines(todo_file_content)
+            else:
+                with open(todo_file_path, 'a') as todo_file:
+                    todo_file.write(f"todo {file_name}\n")
+
+    def get_file_items(self, files):
+        item_label = ''
+        for file in files:
+            file_path = unquote(urlparse(file.get_uri()).path)
+            directory = os.path.dirname(file_path)
+            todo_file_path = os.path.join(directory, ".todo")
+            file_name = os.path.basename(file_path)
+                        
+            if os.path.exists(todo_file_path):
+                with open(todo_file_path, 'r') as todo_file:
+                    todo_file_content = todo_file.readlines()
+
+                if (item_label == '' or item_label.startswith("Disable")) and file_name in [line.strip().split(' ')[1] for line in todo_file_content]:
+                    item_label = 'Disable progress tracking for item'
+                    if len(files) > 1:
+                        item_label = 'Disable progress tracking for items'
+                else:
+                    if (item_label == '' or item_label.startswith("Enable")) and file_name not in [line.strip().split(' ')[1] for line in todo_file_content]:
+                        item_label = 'Enable progress tracking for item'
+                        if len(files) > 1:
+                            item_label = 'Enable progress tracking for items'
+                    else:
+                        item_label = 'Toggle progress tracking for items'
+
+            else:
+                item_label = 'Enable progress tracking for item'
+                if len(files) > 1:
+                    item_label = 'Enable progress tracking for items'
+
+        toggle_tracking = Nautilus.MenuItem(
+            name='ToggleTracking',
+            label=item_label,
+            tip='Toggle tracking for items'
+        )
+        
+        toggle_tracking.connect('activate', self.toggle, files)
+        return toggle_tracking,
