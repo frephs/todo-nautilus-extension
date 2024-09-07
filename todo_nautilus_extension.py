@@ -39,8 +39,6 @@ class TaskStatusProvider(GObject.GObject, Nautilus.ColumnProvider, Nautilus.Info
 
         # If the file is not found in the todo file, set it to empty
         file.add_string_attribute('file_task_status', '')
-
-
 class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
     def toggle(self, menu, files):
         for file in files:
@@ -60,11 +58,12 @@ class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
 
             # Check the current status of the file
             current_status = None
+            new_todo_file_content = []
             for line in todo_file_content:
                 if line.strip().endswith(file_name):  # Check if the line ends with the filename
                     current_status = line.strip().split(' ')[0]  # Get the current status
-                    todo_file_content.remove(line)  # Remove the existing line
-                    break
+                else:
+                    new_todo_file_content.append(line)  # Keep lines that do not match
 
             # Determine the new status
             if current_status in STATUS_EMOJI_MAP:
@@ -74,19 +73,18 @@ class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
             else:
                 new_status = "todo"  # Default to todo if not found
 
-            # Update the todo file
-            # Append the new status at the end of the line
-            todo_file_content.append(f"{new_status} {file_name}\n")
+            # Append the new status at the end of the list
+            new_todo_file_content.append(f"{new_status} {file_name}\n")
 
             # Write the updated content back to the .todo file
             with open(todo_file_path, 'w') as todo_file:
-                todo_file.writelines(todo_file_content)
+                todo_file.writelines(new_todo_file_content)
 
     def get_file_items(self, files):
         if len(files) > 1:
-            item_label = 'Toggle status for items'
+            item_label = 'Toggle next status for items'
         else:
-            item_label = 'Toggle status for item'
+            item_label = 'Toggle next status for item'
 
         toggle_status = Nautilus.MenuItem(
             name='ToggleStatus',
@@ -104,37 +102,45 @@ class ToggleStatusExtension(GObject.GObject, Nautilus.MenuProvider):
             todo_file_path = os.path.join(directory, ".todo")
             file_name = os.path.basename(file_path)
         
+            if os.path.exists(todo_file_path):
             
-            with open(todo_file_path, 'r') as todo_file:
-                todo_file_content = todo_file.readlines()
+                with open(todo_file_path, 'r') as todo_file:
+                    todo_file_content = todo_file.readlines()
+                
+                for line in todo_file_content:
+                    if line.strip().endswith(file_name):
+                        current_status = line.strip().split(' ')[0]
+                        todo_file_content.remove(line)
+                        break
             
-            for line in todo_file_content:
-                if line.strip().endswith(file_name):
-                    current_status = line.strip().split(' ')[0]
-                    todo_file_content.remove(line)
-                    break
+            else :
+                return
         
         if current_status is None:
             return        
         
         toggle_status.connect('activate', self.toggle, files)
         return toggle_status,
-
-
 class ToggleTrackingExtension(GObject.GObject, Nautilus.MenuProvider):
     def toggle(self, menu, files):
         for file in files:
             file_path = unquote(urlparse(file.get_uri()).path)
             directory = os.path.dirname(file_path)
             todo_file_path = os.path.join(directory, ".todo")
+            
+            if not os.path.exists(todo_file_path):
+                with open(todo_file_path, 'w') as todo_file:
+                    todo_file.write('')                
+                
             file_name = os.path.basename(file_path)
 
             with open(todo_file_path, 'r') as todo_file:
                 todo_file_content = todo_file.readlines()
             
-            if os.path.exists(todo_file_path) and file_name in [line.strip().split(' ')[1] for line in todo_file_content]:
+            # Check if file_name is in the todo_file_content
+            if any(line.strip().endswith(file_name) for line in todo_file_content):
                 # Remove the line that contains the file name
-                todo_file_content = [line for line in todo_file_content if not line.strip().endswith(file_name)]
+                todo_file_content = [line for line in todo_file_content if not line.strip().endswith(file_name)]                
 
                 # Write the updated content back to the .todo file
                 with open(todo_file_path, 'w') as todo_file:
@@ -155,12 +161,12 @@ class ToggleTrackingExtension(GObject.GObject, Nautilus.MenuProvider):
                 with open(todo_file_path, 'r') as todo_file:
                     todo_file_content = todo_file.readlines()
 
-                if (item_label == '' or item_label.startswith("Disable")) and file_name in [line.strip().split(' ')[1] for line in todo_file_content]:
+                if (item_label == '' or item_label.startswith("Disable")) and any(line.strip().endswith(file_name) for line in todo_file_content):
                     item_label = 'Disable progress tracking for item'
                     if len(files) > 1:
                         item_label = 'Disable progress tracking for items'
                 else:
-                    if (item_label == '' or item_label.startswith("Enable")) and file_name not in [line.strip().split(' ')[1] for line in todo_file_content]:
+                    if (item_label == '' or item_label.startswith("Enable")) and not any(line.strip().endswith(file_name) for line in todo_file_content):
                         item_label = 'Enable progress tracking for item'
                         if len(files) > 1:
                             item_label = 'Enable progress tracking for items'
