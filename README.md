@@ -45,3 +45,6 @@ Enjoy managing your file-related tasks efficiently with Nautilus!
 
 ##  Demo
 ![Demo](src/demo.gif)
+
+## Contributing and TODOs
+- [ ] Add automatic folder refresh after toggling status.
